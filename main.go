@@ -7,6 +7,7 @@ import (
 	"github.com/michaelwp/goblog/api"
 	"github.com/michaelwp/goblog/api/controller"
 	"github.com/michaelwp/goblog/config"
+	"github.com/redis/go-redis/v9"
 	"log"
 	"net/http"
 	"os"
@@ -40,7 +41,8 @@ func SetupConfig() (config *controller.Config) {
 	}
 
 	config = &controller.Config{
-		Postgres: postgres,
+		Postgres:    postgres,
+		RedisClient: SetupRedis(),
 	}
 
 	return
@@ -57,6 +59,16 @@ func SetupPostgres() (postgres *sql.DB, err error) {
 	}
 
 	return configDb.PostgresConnect()
+}
+
+func SetupRedis() (client *redis.Client) {
+	configRedis := &config.RedisDB{
+		Host: os.Getenv("REDIS_HOST"),
+		Port: os.Getenv("REDIS_PORT"),
+		Pass: os.Getenv("REDIS_PASSWORD"),
+	}
+
+	return configRedis.RedisConnect()
 }
 
 func SetupStaticFile(r *gin.Engine) {

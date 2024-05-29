@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/michaelwp/goblog/model"
 	"github.com/michaelwp/goblog/model/category"
 	"net/http"
 )
@@ -56,10 +57,12 @@ func (g categoryController) CreateCategory(c *gin.Context) {
 }
 
 func (g categoryController) InsertCategory(ctx context.Context, categoryRequest *category.Category) (err error) {
-	value := []any{categoryRequest.Name}
-	where := "WHERE name=$1"
+	where := &model.Where{
+		Parameter: "WHERE name=$1",
+		Values:    []any{categoryRequest.Name},
+	}
 
-	currCategory, err := category.FindCategory(ctx, g.Postgres, where, value)
+	currCategory, err := category.FindCategory(ctx, g.Postgres, where)
 	if !errors.Is(err, sql.ErrNoRows) && err != nil {
 		return
 	}
@@ -68,7 +71,12 @@ func (g categoryController) InsertCategory(ctx context.Context, categoryRequest 
 		return errors.New("category already registered")
 	}
 
-	err = category.CreateCategory(ctx, g.Config.Postgres, categoryRequest)
+	categoryRequest.CreatedBy, err = GetCurrentUserIdLoggedIn(ctx)
+	if err != nil {
+		return
+	}
+
+	_, err = category.CreateCategory(ctx, g.Config.Postgres, categoryRequest)
 	if err != nil {
 		return
 	}
@@ -83,7 +91,7 @@ func (g categoryController) GetCategoryList(c *gin.Context) {
 		Translate: "category.get.success",
 	}
 
-	categoryList, err := category.GetCategoryList(c, g.Postgres, "", nil)
+	categoryList, err := category.GetCategoryList(c, g.Postgres, nil)
 	if err != nil {
 		response.Status = ERROR
 		response.Message = err.Error()
@@ -115,10 +123,12 @@ func (g categoryController) GetCategory(c *gin.Context) {
 	}
 
 	categoryId := c.Param("id")
-	where := "WHERE id=$1"
-	value := []any{categoryId}
+	where := &model.Where{
+		Parameter: "WHERE id=$1",
+		Values:    []any{categoryId},
+	}
 
-	currCategory, err := category.FindCategory(c, g.Postgres, where, value)
+	currCategory, err := category.FindCategory(c, g.Postgres, where)
 	if err != nil {
 		translate := "category.get.error"
 		httpStatus := http.StatusInternalServerError

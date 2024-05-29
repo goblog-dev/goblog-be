@@ -4,26 +4,42 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/michaelwp/goblog/model"
 	"log"
+	"strings"
+	"time"
 )
 
-func CreateCategory(ctx context.Context, postgres *sql.DB, category *Category) (err error) {
-	queryScript := `INSERT INTO categories (name) VALUES ($1)`
-	_, err = postgres.ExecContext(ctx, queryScript, category.Name)
-	return
+func CreateCategory(ctx context.Context, postgres *sql.DB, category *Category) (result sql.Result, err error) {
+	queryScript := `
+		INSERT INTO categories (
+			name
+			, created_by
+		) VALUES ($1, $2)
+	`
+
+	return postgres.ExecContext(ctx, queryScript,
+		strings.ToLower(category.Name),
+		category.CreatedBy,
+	)
 }
 
-func GetCategoryList(ctx context.Context, postgres *sql.DB, where string, value []any) (categoryList []*Category, err error) {
+func GetCategoryList(ctx context.Context, postgres *sql.DB, where *model.Where) (categoryList []*Category, err error) {
+	where = model.ValidateWhere(where)
+
 	queryScript := `
 		SELECT	id
 				, name
 		    	, created_at
 		    	, updated_at
+				, created_by
+		     
+				, updated_by
 		FROM 	categories
 	`
 
-	query := fmt.Sprintf("%s %s", queryScript, where)
-	rows, err := postgres.QueryContext(ctx, query, value...)
+	query := fmt.Sprintf("%s %s", queryScript, where.Parameter)
+	rows, err := postgres.QueryContext(ctx, query, where.Values...)
 	if err != nil {
 		return
 	}
@@ -45,6 +61,9 @@ func GetCategoryList(ctx context.Context, postgres *sql.DB, where string, value 
 			&category.Name,
 			&category.CreatedAt,
 			&category.UpdatedAt,
+			&category.CreatedBy,
+
+			&category.UpdatedBy,
 		)
 
 		if err != nil {
@@ -57,17 +76,22 @@ func GetCategoryList(ctx context.Context, postgres *sql.DB, where string, value 
 	return
 }
 
-func FindCategory(ctx context.Context, postgres *sql.DB, where string, value []any) (category *Category, err error) {
+func FindCategory(ctx context.Context, postgres *sql.DB, where *model.Where) (category *Category, err error) {
+	where = model.ValidateWhere(where)
+
 	queryScript := `
 		SELECT	id
 				, name
 		    	, created_at
 		    	, updated_at
+				, created_by
+		
+				, updated_by
 		FROM 	categories
 	`
 
-	query := fmt.Sprintf("%s %s", queryScript, where)
-	row := postgres.QueryRowContext(ctx, query, value...)
+	query := fmt.Sprintf("%s %s", queryScript, where.Parameter)
+	row := postgres.QueryRowContext(ctx, query, where.Values...)
 
 	category = new(Category)
 	err = row.Scan(
@@ -75,6 +99,9 @@ func FindCategory(ctx context.Context, postgres *sql.DB, where string, value []a
 		&category.Name,
 		&category.CreatedAt,
 		&category.UpdatedAt,
+		&category.CreatedBy,
+
+		&category.UpdatedBy,
 	)
 
 	if err != nil {
@@ -82,4 +109,26 @@ func FindCategory(ctx context.Context, postgres *sql.DB, where string, value []a
 	}
 
 	return
+}
+
+func UpdateCategory(ctx context.Context, postgres *sql.DB, category *Category) (result sql.Result, err error) {
+	queryScript := `
+		UPDATE 	categories SET 
+		    	name = $1
+				, updated_at = $2
+				, updated_by = $3
+		WHERE 	id = $4
+		`
+
+	return postgres.ExecContext(ctx, queryScript,
+		strings.ToLower(category.Name),
+		time.Now(),
+		category.UpdatedBy,
+		category.Id,
+	)
+}
+
+func DeleteCategory(ctx context.Context, postgres *sql.DB, categoryId int64) (result sql.Result, err error) {
+	queryScript := `DELETE FROM categories WHERE id = $1`
+	return postgres.ExecContext(ctx, queryScript, categoryId)
 }

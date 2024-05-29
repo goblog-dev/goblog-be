@@ -1,6 +1,7 @@
 package tool
 
 import (
+	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"os"
@@ -43,4 +44,24 @@ func GenerateJWT(id int64) (signed string, err error) {
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(os.Getenv("JWT_SIGNING_KEY")))
+}
+
+func VerifyJWT(tokenString string) (claims jwt.MapClaims, err error) {
+	signingKey := []byte(os.Getenv("JWT_SIGNING_KEY"))
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return signingKey, nil
+	})
+
+	if err != nil {
+		return
+	}
+
+	if !token.Valid {
+		err = errors.New("invalid token")
+		return
+	}
+
+	claims = token.Claims.(jwt.MapClaims)
+	return
 }

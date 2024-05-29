@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/michaelwp/goblog/model"
 	"github.com/michaelwp/goblog/model/user"
 	"github.com/michaelwp/goblog/tool"
 	"net/http"
@@ -57,10 +58,12 @@ func (u userController) CreateUser(c *gin.Context) {
 }
 
 func (u userController) InsertUser(ctx context.Context, userRequest *user.User) (err error) {
-	value := []any{userRequest.Email}
-	where := "WHERE email=$1"
+	where := &model.Where{
+		Parameter: "WHERE email=$1",
+		Values:    []any{userRequest.Email},
+	}
 
-	currUser, err := user.FindUser(ctx, u.Postgres, where, value)
+	currUser, err := user.FindUser(ctx, u.Postgres, where)
 	if !errors.Is(err, sql.ErrNoRows) && err != nil {
 		return
 	}
@@ -75,7 +78,7 @@ func (u userController) InsertUser(ctx context.Context, userRequest *user.User) 
 	}
 
 	userRequest.Password = string(hash)
-	err = user.CreateUser(ctx, u.Config.Postgres, userRequest)
+	_, err = user.CreateUser(ctx, u.Config.Postgres, userRequest)
 	if err != nil {
 		return
 	}
@@ -90,7 +93,7 @@ func (u userController) GetUserList(c *gin.Context) {
 		Translate: "user.get.success",
 	}
 
-	userList, err := user.GetUserList(c, u.Postgres, "", nil)
+	userList, err := user.GetUserList(c, u.Postgres, nil)
 	if err != nil {
 		response.Status = ERROR
 		response.Message = err.Error()
@@ -122,10 +125,12 @@ func (u userController) GetUser(c *gin.Context) {
 	}
 
 	userId := c.Param("id")
-	where := "WHERE id=$1"
-	value := []any{userId}
+	where := &model.Where{
+		Parameter: "WHERE id=$1",
+		Values:    []any{userId},
+	}
 
-	currUser, err := user.FindUser(c, u.Postgres, where, value)
+	currUser, err := user.FindUser(c, u.Postgres, where)
 	if err != nil {
 		translate := "user.get.error"
 		httpStatus := http.StatusInternalServerError

@@ -1,6 +1,11 @@
 package controller
 
-import "database/sql"
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"github.com/redis/go-redis/v9"
+)
 
 const (
 	ERROR   = "error"
@@ -15,5 +20,22 @@ type Response struct {
 }
 
 type Config struct {
-	Postgres *sql.DB
+	Postgres    *sql.DB
+	RedisClient *redis.Client
+}
+
+func GetCurrentUserIdLoggedIn(ctx context.Context) (userId int64, err error) {
+	userIdCtx := ctx.Value("user_id")
+	if userIdCtx == nil {
+		err = errors.New("user not found")
+		return
+	}
+
+	userId, ok := userIdCtx.(int64)
+	if !ok {
+		err = errors.New("user not found")
+		return
+	}
+
+	return
 }

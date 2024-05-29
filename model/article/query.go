@@ -4,47 +4,55 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/michaelwp/goblog/model"
 	"log"
+	"time"
 )
 
-func CreateArticle(ctx context.Context, postgres *sql.DB, article *Article) (err error) {
+func CreateArticle(ctx context.Context, postgres *sql.DB, article *Article) (result sql.Result, err error) {
 	queryScript := `
 		INSERT INTO articles (
 			user_id
 			, category_id
 			, title
 			, content
-		) VALUES ($1, $2, $3, $4)
+			, created_by
+		) VALUES ($1, $2, $3, $4, $5)
 	`
 
-	_, err = postgres.ExecContext(
-		ctx,
-		queryScript,
+	return postgres.ExecContext(ctx, queryScript,
 		article.UserId,
 		article.CategoryId,
 		article.Title,
 		article.Content,
+		article.CreatedBy,
 	)
-
-	return
 }
 
-func GetArticleList(ctx context.Context, postgres *sql.DB, where string, value []any) (articleList []*Article, err error) {
+func GetArticleList(ctx context.Context, postgres *sql.DB, where *model.Where) (articleList []*Article, err error) {
+	where = model.ValidateWhere(where)
+
 	queryScript := `
-		SELECT	id
-				, user_id
-				, category_id
-		    	, title
-		     	, content
+		SELECT	a.id
+				, a.user_id
+				, a.category_id
+		    	, a.title
+		     	, a.content
 		     
-		    	, created_at
-		    	, updated_at
-				, deleted_at
-		FROM 	articles
+		    	, a.created_at
+		    	, a.updated_at
+				, a.created_by
+				, a.updated_by
+				, u.name AS user_name
+		     
+				, c.name AS category_name
+		FROM 	articles a
+				JOIN users u ON a.user_id = u.id
+				JOIN categories c ON a.category_id = c.id
 	`
 
-	query := fmt.Sprintf("%s %s", queryScript, where)
-	rows, err := postgres.QueryContext(ctx, query, value...)
+	query := fmt.Sprintf("%s %s", queryScript, where.Parameter)
+	rows, err := postgres.QueryContext(ctx, query, where.Values...)
 	if err != nil {
 		return
 	}
@@ -70,7 +78,11 @@ func GetArticleList(ctx context.Context, postgres *sql.DB, where string, value [
 
 			&article.CreatedAt,
 			&article.UpdatedAt,
-			&article.DeletedAt,
+			&article.CreatedBy,
+			&article.UpdatedBy,
+			&article.UserName,
+
+			&article.CategoryName,
 		)
 
 		if err != nil {
@@ -83,22 +95,30 @@ func GetArticleList(ctx context.Context, postgres *sql.DB, where string, value [
 	return
 }
 
-func FindArticle(ctx context.Context, postgres *sql.DB, where string, value []any) (article *Article, err error) {
+func FindArticle(ctx context.Context, postgres *sql.DB, where *model.Where) (article *Article, err error) {
+	where = model.ValidateWhere(where)
+
 	queryScript := `
-		SELECT	id
-				, user_id
-				, category_id
-		    	, title
-		     	, content
+		SELECT	a.id
+				, a.user_id
+				, a.category_id
+		    	, a.title
+		     	, a.content
 		     
-		    	, created_at
-		    	, updated_at
-				, deleted_at
-		FROM 	articles
+		    	, a.created_at
+		    	, a.updated_at
+				, a.created_by
+				, a.updated_by
+				, u.name AS user_name
+		     
+				, c.name AS category_name
+		FROM 	articles a
+				JOIN users u ON a.user_id = u.id
+				JOIN categories c ON a.category_id = c.id
 	`
 
-	query := fmt.Sprintf("%s %s", queryScript, where)
-	row := postgres.QueryRowContext(ctx, query, value...)
+	query := fmt.Sprintf("%s %s", queryScript, where.Parameter)
+	row := postgres.QueryRowContext(ctx, query, where.Values...)
 
 	article = new(Article)
 	err = row.Scan(
@@ -110,7 +130,11 @@ func FindArticle(ctx context.Context, postgres *sql.DB, where string, value []an
 
 		&article.CreatedAt,
 		&article.UpdatedAt,
-		&article.DeletedAt,
+		&article.CreatedBy,
+		&article.UpdatedBy,
+		&article.UserName,
+
+		&article.CategoryName,
 	)
 
 	if err != nil {
@@ -118,4 +142,34 @@ func FindArticle(ctx context.Context, postgres *sql.DB, where string, value []an
 	}
 
 	return
+}
+
+func UpdateArticle(ctx context.Context, postgres *sql.DB, article *Article) (result sql.Result, err error) {
+	queryScript := `
+		UPDATE 	articles SET 
+		    	user_id = $1
+				, category_id = $2
+				, title = $3
+				, content = $4
+				, updated_at = $5
+				
+		        , updated_by = $6
+		WHERE 	id = $7
+		`
+
+	return postgres.ExecContext(ctx, queryScript,
+		article.UserId,
+		article.CategoryId,
+		article.Title,
+		article.Content,
+		time.Now(),
+
+		article.UpdatedBy,
+		article.Id,
+	)
+}
+
+func DeleteArticle(ctx context.Context, postgres *sql.DB, articleId int64) (result sql.Result, err error) {
+	queryScript := `DELETE FROM articles WHERE id = $1`
+	return postgres.ExecContext(ctx, queryScript, articleId)
 }
