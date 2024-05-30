@@ -1,2 +1,3 @@
 # goblog
-my personal blog
+
+It's a web blog
