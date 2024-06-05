@@ -49,7 +49,7 @@ func SetupConfig() (config *controller.Config) {
 }
 
 func SetupPostgres() (postgres *sql.DB, err error) {
-	configDb := &config.DB{
+	configDb := &config.PostgresDBConfig{
 		Host:    os.Getenv("POSTGRES_DB_HOST"),
 		Port:    os.Getenv("POSTGRES_DB_PORT"),
 		User:    os.Getenv("POSTGRES_DB_USER"),
@@ -58,17 +58,17 @@ func SetupPostgres() (postgres *sql.DB, err error) {
 		SslMode: os.Getenv("POSTGRES_DB_SSL_MODE"),
 	}
 
-	return configDb.PostgresConnect()
+	return configDb.Connect()
 }
 
 func SetupRedis() (client *redis.Client) {
-	configRedis := &config.RedisDB{
+	configRedis := &config.RedisDBConfig{
 		Host: os.Getenv("REDIS_HOST"),
 		Port: os.Getenv("REDIS_PORT"),
 		Pass: os.Getenv("REDIS_PASSWORD"),
 	}
 
-	return configRedis.RedisConnect()
+	return configRedis.Connect()
 }
 
 func SetupStaticFile(r *gin.Engine) {

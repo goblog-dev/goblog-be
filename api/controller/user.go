@@ -6,7 +6,6 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/michaelwp/goblog/model"
-	"github.com/michaelwp/goblog/model/user"
 	"github.com/michaelwp/goblog/tool"
 	"net/http"
 )
@@ -33,7 +32,7 @@ func (u userController) CreateUser(c *gin.Context) {
 		Translate: "user.create.success",
 	}
 
-	var userRequest user.User
+	var userRequest model.User
 	err := c.ShouldBindJSON(&userRequest)
 	if err != nil {
 		response.Status = ERROR
@@ -57,13 +56,14 @@ func (u userController) CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, response)
 }
 
-func (u userController) InsertUser(ctx context.Context, userRequest *user.User) (err error) {
+func (u userController) InsertUser(ctx context.Context, userRequest *model.User) (err error) {
 	where := &model.Where{
 		Parameter: "WHERE email=$1",
 		Values:    []any{userRequest.Email},
 	}
 
-	currUser, err := user.FindUser(ctx, u.Postgres, where)
+	userModel := model.NewUserModel(u.Config.Postgres)
+	currUser, err := userModel.FindUser(ctx, where)
 	if !errors.Is(err, sql.ErrNoRows) && err != nil {
 		return
 	}
@@ -78,7 +78,7 @@ func (u userController) InsertUser(ctx context.Context, userRequest *user.User) 
 	}
 
 	userRequest.Password = string(hash)
-	_, err = user.CreateUser(ctx, u.Config.Postgres, userRequest)
+	_, err = userModel.CreateUser(ctx, userRequest)
 	if err != nil {
 		return
 	}
@@ -93,7 +93,8 @@ func (u userController) GetUserList(c *gin.Context) {
 		Translate: "user.get.success",
 	}
 
-	userList, err := user.GetUserList(c, u.Postgres, nil)
+	userModel := model.NewUserModel(u.Config.Postgres)
+	userList, err := userModel.GetUserList(c, nil)
 	if err != nil {
 		response.Status = ERROR
 		response.Message = err.Error()
@@ -130,7 +131,8 @@ func (u userController) GetUser(c *gin.Context) {
 		Values:    []any{userId},
 	}
 
-	currUser, err := user.FindUser(c, u.Postgres, where)
+	userModel := model.NewUserModel(u.Config.Postgres)
+	currUser, err := userModel.FindUser(c, where)
 	if err != nil {
 		translate := "user.get.error"
 		httpStatus := http.StatusInternalServerError

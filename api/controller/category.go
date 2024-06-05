@@ -6,7 +6,6 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/michaelwp/goblog/model"
-	"github.com/michaelwp/goblog/model/category"
 	"net/http"
 )
 
@@ -32,7 +31,7 @@ func (g categoryController) CreateCategory(c *gin.Context) {
 		Translate: "category.create.success",
 	}
 
-	var categoryRequest category.Category
+	var categoryRequest model.Category
 	err := c.ShouldBindJSON(&categoryRequest)
 	if err != nil {
 		response.Status = ERROR
@@ -56,13 +55,14 @@ func (g categoryController) CreateCategory(c *gin.Context) {
 	c.JSON(http.StatusCreated, response)
 }
 
-func (g categoryController) InsertCategory(ctx context.Context, categoryRequest *category.Category) (err error) {
+func (g categoryController) InsertCategory(ctx context.Context, categoryRequest *model.Category) (err error) {
 	where := &model.Where{
 		Parameter: "WHERE name=$1",
 		Values:    []any{categoryRequest.Name},
 	}
 
-	currCategory, err := category.FindCategory(ctx, g.Postgres, where)
+	categoryModel := model.NewCategoryModel(g.Config.Postgres)
+	currCategory, err := categoryModel.FindCategory(ctx, where)
 	if !errors.Is(err, sql.ErrNoRows) && err != nil {
 		return
 	}
@@ -76,7 +76,7 @@ func (g categoryController) InsertCategory(ctx context.Context, categoryRequest 
 		return
 	}
 
-	_, err = category.CreateCategory(ctx, g.Config.Postgres, categoryRequest)
+	_, err = categoryModel.CreateCategory(ctx, categoryRequest)
 	if err != nil {
 		return
 	}
@@ -91,7 +91,8 @@ func (g categoryController) GetCategoryList(c *gin.Context) {
 		Translate: "category.get.success",
 	}
 
-	categoryList, err := category.GetCategoryList(c, g.Postgres, nil)
+	categoryModel := model.NewCategoryModel(g.Config.Postgres)
+	categoryList, err := categoryModel.GetCategoryList(c, nil)
 	if err != nil {
 		response.Status = ERROR
 		response.Message = err.Error()
@@ -128,7 +129,8 @@ func (g categoryController) GetCategory(c *gin.Context) {
 		Values:    []any{categoryId},
 	}
 
-	currCategory, err := category.FindCategory(c, g.Postgres, where)
+	categoryModel := model.NewCategoryModel(g.Config.Postgres)
+	currCategory, err := categoryModel.FindCategory(c, where)
 	if err != nil {
 		translate := "category.get.error"
 		httpStatus := http.StatusInternalServerError

@@ -34,13 +34,16 @@ func User(r *gin.RouterGroup, controller controller.UserController, config *cont
 }
 
 func Article(r *gin.RouterGroup, controller controller.ArticleController, config *controller.Config) {
-	articles := r.Group("/articles").Use(middleware.AuthMiddleware(config))
+	articles := r.Group("/articles")
 	{
-		articles.POST("/create", controller.CreateArticle)
 		articles.GET("/", controller.GetArticleList)
-		articles.PUT("/update", controller.UpdateArticle)
 		articles.GET("/:id", controller.GetArticle)
-		articles.DELETE("/delete", controller.DeleteArticle)
+		articles.Use(middleware.AuthMiddleware(config))
+		{
+			articles.POST("/create", controller.CreateArticle)
+			articles.PUT("/update", controller.UpdateArticle)
+			articles.DELETE("/delete", controller.DeleteArticle)
+		}
 	}
 }
 

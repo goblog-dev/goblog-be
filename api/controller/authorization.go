@@ -6,7 +6,6 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/michaelwp/goblog/model"
-	"github.com/michaelwp/goblog/model/user"
 	"github.com/michaelwp/goblog/tool"
 	"net/http"
 	"strconv"
@@ -83,10 +82,11 @@ func (a authorizationController) LoginProcess(ctx context.Context, cred *LoginCr
 
 	where := &model.Where{
 		Parameter: "WHERE email = $1 AND status = $2",
-		Values:    []interface{}{cred.Email, user.ACTIVE},
+		Values:    []interface{}{cred.Email, model.ACTIVE},
 	}
 
-	currUser, err := user.FindUser(ctx, a.Postgres, where)
+	userModel := model.NewUserModel(a.Config.Postgres)
+	currUser, err := userModel.FindUser(ctx, where)
 	if err != nil {
 		return
 	}

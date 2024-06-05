@@ -6,7 +6,6 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/michaelwp/goblog/model"
-	"github.com/michaelwp/goblog/model/article"
 	"net/http"
 	"strconv"
 )
@@ -34,7 +33,7 @@ func (a articleController) CreateArticle(c *gin.Context) {
 		Translate: "article.create.success",
 	}
 
-	var articleRequest article.Article
+	var articleRequest model.Article
 	err := c.ShouldBindJSON(&articleRequest)
 	if err != nil {
 		response.Status = ERROR
@@ -58,7 +57,8 @@ func (a articleController) CreateArticle(c *gin.Context) {
 	articleRequest.UserId = userId
 	articleRequest.CreatedBy = userId
 
-	_, err = article.CreateArticle(c, a.Config.Postgres, &articleRequest)
+	articleModel := model.NewArticleModel(a.Config.Postgres)
+	_, err = articleModel.CreateArticle(c, &articleRequest)
 	if err != nil {
 		response.Status = ERROR
 		response.Message = err.Error()
@@ -78,7 +78,13 @@ func (a articleController) GetArticleList(c *gin.Context) {
 		Translate: "article.get.success",
 	}
 
-	articleList, err := article.GetArticleList(c, a.Postgres, nil)
+	articleModel := model.NewArticleModel(a.Config.Postgres)
+
+	where := &model.Where{
+		Order: "ORDER BY created_at DESC",
+	}
+
+	articleList, err := articleModel.GetArticleList(c, where)
 	if err != nil {
 		response.Status = ERROR
 		response.Message = err.Error()
@@ -99,7 +105,7 @@ func (a articleController) UpdateArticle(c *gin.Context) {
 		Translate: "article.update.success",
 	}
 
-	var articleRequest article.Article
+	var articleRequest model.Article
 	err := c.ShouldBindJSON(&articleRequest)
 	if err != nil {
 		response.Status = ERROR
@@ -123,7 +129,7 @@ func (a articleController) UpdateArticle(c *gin.Context) {
 	c.JSON(200, response)
 }
 
-func (a articleController) UpdateCurrentArticle(ctx context.Context, articleRequest *article.Article) (err error) {
+func (a articleController) UpdateCurrentArticle(ctx context.Context, articleRequest *model.Article) (err error) {
 	userId, err := GetCurrentUserIdLoggedIn(ctx)
 	if err != nil {
 		return
@@ -132,7 +138,8 @@ func (a articleController) UpdateCurrentArticle(ctx context.Context, articleRequ
 	articleRequest.UserId = userId
 	articleRequest.UpdatedBy = &userId
 
-	_, err = article.UpdateArticle(ctx, a.Postgres, articleRequest)
+	articleModel := model.NewArticleModel(a.Config.Postgres)
+	_, err = articleModel.UpdateArticle(ctx, articleRequest)
 	if err != nil {
 		return
 	}
@@ -160,7 +167,7 @@ func (a articleController) GetArticle(c *gin.Context) {
 }
 
 func (a articleController) FindCurrentArticle(ctx context.Context, resp *Response, articleId string) (
-	currArticle *article.Article, response *Response, httpStatus int, err error) {
+	currArticle *model.ArticleWithExtend, response *Response, httpStatus int, err error) {
 
 	response.Status = ERROR
 	response.Translate = "article.get.error"
@@ -177,7 +184,8 @@ func (a articleController) FindCurrentArticle(ctx context.Context, resp *Respons
 		Values:    []any{articleIdInt},
 	}
 
-	currArticle, err = article.FindArticle(ctx, a.Postgres, where)
+	articleModel := model.NewArticleModel(a.Config.Postgres)
+	currArticle, err = articleModel.FindArticle(ctx, where)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			response.Translate = "article.not.found"
@@ -208,7 +216,8 @@ func (a articleController) DeleteArticle(c *gin.Context) {
 		return
 	}
 
-	_, err = article.DeleteArticle(c, a.Postgres, articleIdInt)
+	articleModel := model.NewArticleModel(a.Config.Postgres)
+	_, err = articleModel.DeleteArticle(c, articleIdInt)
 	if err != nil {
 		response.Status = ERROR
 		response.Message = err.Error()
