@@ -48,12 +48,15 @@ func Article(r *gin.RouterGroup, controller controller.ArticleController, config
 }
 
 func Category(r *gin.RouterGroup, controller controller.CategoryController, config *controller.Config) {
-	categories := r.Group("/categories").Use(middleware.AuthMiddleware(config))
+	categories := r.Group("/categories")
 	{
-		categories.POST("/create", controller.CreateCategory)
 		categories.GET("/", controller.GetCategoryList)
-		categories.PUT("/update", controller.UpdateCategory)
 		categories.GET("/:id", controller.GetCategory)
+		categories.Use(middleware.AuthMiddleware(config))
+		{
+			categories.POST("/create", controller.CreateCategory)
+			categories.PUT("/update", controller.UpdateCategory)
+		}
 	}
 }
 
