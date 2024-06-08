@@ -25,6 +25,7 @@ func NewRouter(r *gin.Engine, config *controller.Config) {
 
 func User(r *gin.RouterGroup, controller controller.UserController, config *controller.Config) {
 	users := r.Group("/users").Use(middleware.AuthMiddleware(config))
+	//users := r.Group("/users")
 	{
 		users.POST("/create", controller.CreateUser)
 		users.GET("/", controller.GetUserList)

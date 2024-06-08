@@ -81,7 +81,8 @@ func (a articleController) GetArticleList(c *gin.Context) {
 	articleModel := model.NewArticleModel(a.Config.Postgres)
 
 	where := &model.Where{
-		Order: "ORDER BY created_at DESC",
+		Order: "ORDER BY a.id DESC",
+		Limit: "LIMIT 20",
 	}
 
 	articleList, err := articleModel.GetArticleList(c, where)

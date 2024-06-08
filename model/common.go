@@ -7,6 +7,8 @@ func ValidateWhere(where *Where) (whereNew *Where) {
 		whereNew = &Where{
 			Parameter: "",
 			Values:    []any{},
+			Order:     "",
+			Limit:     "",
 		}
 	}
 

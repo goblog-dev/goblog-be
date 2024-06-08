@@ -16,6 +16,7 @@ type Where struct {
 	Parameter string
 	Values    []any
 	Order     string
+	Limit     string
 }
 
 type PostgresRepository struct {

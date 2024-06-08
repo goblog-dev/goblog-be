@@ -66,7 +66,7 @@ func (postgres *PostgresRepository) GetArticleList(ctx context.Context, where *W
 				JOIN categories c ON a.category_id = c.id
 	`
 
-	query := fmt.Sprintf("%s %s %s", queryScript, where.Parameter, where.Order)
+	query := fmt.Sprintf("%s %s %s %s", queryScript, where.Parameter, where.Order, where.Limit)
 	rows, err := postgres.DB.QueryContext(ctx, query, where.Values...)
 	if err != nil {
 		return
