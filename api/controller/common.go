@@ -17,6 +17,7 @@ type Response struct {
 	Message   string `json:"message"`
 	Translate string `json:"translate"`
 	Data      any    `json:"data,omitempty"`
+	HttpCode  int    `json:"http_code,omitempty"`
 }
 
 type Config struct {

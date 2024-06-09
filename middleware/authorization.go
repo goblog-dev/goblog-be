@@ -16,6 +16,7 @@ func AuthMiddleware(config *controller.Config) gin.HandlerFunc {
 			Status:    controller.ERROR,
 			Message:   "unauthorized",
 			Translate: "unauthorized",
+			HttpCode:  http.StatusUnauthorized,
 		}
 
 		bearerToken := c.Request.Header.Get("Authorization")
