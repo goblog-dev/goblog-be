@@ -6,7 +6,7 @@ import (
 )
 
 type RedisDBConfig struct {
-	Host, Port, Pass, DB string
+	User, Host, Port, Pass, DB string
 }
 
 func (r *RedisDBConfig) Connect() (client *redis.Client) {
@@ -15,4 +15,15 @@ func (r *RedisDBConfig) Connect() (client *redis.Client) {
 		Password: r.Pass,
 		DB:       0,
 	})
+}
+
+func (r *RedisDBConfig) ConnectWithString() (client *redis.Client, err error) {
+	connectionString := fmt.Sprintf("redis://%s:%s@%s:%s/0", r.User, r.Pass, r.Host, r.Port)
+
+	opt, err := redis.ParseURL(connectionString)
+	if err != nil {
+		return nil, err
+	}
+
+	return redis.NewClient(opt), nil
 }

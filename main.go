@@ -40,9 +40,14 @@ func SetupConfig() (config *controller.Config) {
 		log.Fatal("error connect to postgres", err)
 	}
 
+	client, err := SetupRedis()
+	if err != nil {
+		log.Fatal("error connect to redis", err)
+	}
+
 	config = &controller.Config{
 		Postgres:    postgres,
-		RedisClient: SetupRedis(),
+		RedisClient: client,
 	}
 
 	return
@@ -61,14 +66,16 @@ func SetupPostgres() (postgres *sql.DB, err error) {
 	return configDb.Connect()
 }
 
-func SetupRedis() (client *redis.Client) {
+func SetupRedis() (client *redis.Client, err error) {
 	configRedis := &config.RedisDBConfig{
 		Host: os.Getenv("REDIS_HOST"),
 		Port: os.Getenv("REDIS_PORT"),
 		Pass: os.Getenv("REDIS_PASSWORD"),
+		DB:   os.Getenv("REDIS_DB"),
+		User: os.Getenv("REDIS_USER"),
 	}
 
-	return configRedis.Connect()
+	return configRedis.ConnectWithString()
 }
 
 func SetupStaticFile(r *gin.Engine) {
