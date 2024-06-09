@@ -6,14 +6,13 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 )
 
 type UserModel interface {
 	CreateUser(ctx context.Context, user *User) (result sql.Result, err error)
 	GetUserList(ctx context.Context, where *Where) (userList []*User, err error)
 	FindUser(ctx context.Context, where *Where) (user *User, err error)
-	UpdateUser(ctx context.Context, user *User) (result sql.Result, err error)
+	UpdateOnlineStatus(ctx context.Context, user *User) (result sql.Result, err error)
 	DeleteUser(ctx context.Context, userId int64) (result sql.Result, err error)
 }
 
@@ -24,19 +23,17 @@ func NewUserModel(db *sql.DB) UserModel {
 func (postgres *PostgresRepository) CreateUser(ctx context.Context, user *User) (result sql.Result, err error) {
 	queryScript := `
 		INSERT INTO users (
-			email
+		    name
+			, email
 			, password
-			, name
-			, status
 			, created_by
-		) VALUES ($1, $2, $3, $4, $5)
+		) VALUES ($1, $2, $3, $4)
 	`
 
 	return postgres.DB.ExecContext(ctx, queryScript,
+		strings.ToLower(user.Name),
 		strings.ToLower(user.Email),
 		user.Password,
-		strings.ToLower(user.Name),
-		user.Status,
 		user.CreatedBy,
 	)
 }
@@ -46,14 +43,17 @@ func (postgres *PostgresRepository) GetUserList(ctx context.Context, where *Wher
 
 	queryScript := `
 		SELECT	id
+		     	, name
 				, email
 		     	, password
-				, name
-		    	, status
-		     
-		    	, created_at
+		    	, online
+		     	
+		     	, active
+		     	, avatar
+		     	, created_by
+				, created_at
 		    	, updated_at
-				, created_by
+		
 				, updated_by
 		FROM 	users
 	`
@@ -78,14 +78,17 @@ func (postgres *PostgresRepository) GetUserList(ctx context.Context, where *Wher
 
 		err = rows.Scan(
 			&user.Id,
+			&user.Name,
 			&user.Email,
 			&user.Password,
-			&user.Name,
-			&user.Status,
+			&user.Online,
 
+			&user.Active,
+			&user.Avatar,
+			&user.CreatedBy,
 			&user.CreatedAt,
 			&user.UpdatedAt,
-			&user.CreatedBy,
+
 			&user.UpdatedBy,
 		)
 
@@ -103,14 +106,17 @@ func (postgres *PostgresRepository) FindUser(ctx context.Context, where *Where) 
 	where = ValidateWhere(where)
 	queryScript := `
 		SELECT	id
+		     	, name
 				, email
 		     	, password
-				, name
-		    	, status
-		     
-		    	, created_at
+		    	, online
+		     	
+		     	, active
+		     	, avatar
+		     	, created_by
+				, created_at
 		    	, updated_at
-				, created_by
+		
 				, updated_by
 		FROM 	users
 	`
@@ -121,14 +127,17 @@ func (postgres *PostgresRepository) FindUser(ctx context.Context, where *Where) 
 	user = new(User)
 	err = row.Scan(
 		&user.Id,
+		&user.Name,
 		&user.Email,
 		&user.Password,
-		&user.Name,
-		&user.Status,
+		&user.Online,
 
+		&user.Active,
+		&user.Avatar,
+		&user.CreatedBy,
 		&user.CreatedAt,
 		&user.UpdatedAt,
-		&user.CreatedBy,
+
 		&user.UpdatedBy,
 	)
 
@@ -139,27 +148,17 @@ func (postgres *PostgresRepository) FindUser(ctx context.Context, where *Where) 
 	return
 }
 
-func (postgres *PostgresRepository) UpdateUser(ctx context.Context, user *User) (result sql.Result, err error) {
+func (postgres *PostgresRepository) UpdateOnlineStatus(ctx context.Context, user *User) (result sql.Result, err error) {
 	queryScript := `
 		UPDATE 	users SET 
-		    	email = $1
-				, password = $2
-		        , name = $3
-		        , status = $4
-				, updated_by = $5
-		              
-		        , updated_at = $6
-		WHERE 	id = $7
+		        online = $1
+				, updated_by = $2      
+		WHERE 	id = $3
 		`
 
 	return postgres.DB.ExecContext(ctx, queryScript,
-		strings.ToLower(user.Email),
-		user.Password,
-		strings.ToLower(user.Name),
-		user.Status,
+		user.Online,
 		user.UpdatedBy,
-
-		time.Now(),
 		user.Id,
 	)
 }

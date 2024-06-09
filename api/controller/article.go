@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/michaelwp/goblog/model"
+	"github.com/michaelwp/goblog/tool"
 	"net/http"
 	"strconv"
 )
@@ -37,7 +38,7 @@ func (a articleController) CreateArticle(c *gin.Context) {
 	err := c.ShouldBindJSON(&articleRequest)
 	if err != nil {
 		response.Status = ERROR
-		response.Message = err.Error()
+		response.Message = tool.PrintLog("create_article:", err).Error()
 		response.Translate = "article.create.error"
 
 		c.JSON(http.StatusBadRequest, response)
@@ -47,7 +48,7 @@ func (a articleController) CreateArticle(c *gin.Context) {
 	userId, err := GetCurrentUserIdLoggedIn(c)
 	if err != nil {
 		response.Status = ERROR
-		response.Message = err.Error()
+		response.Message = tool.PrintLog("create_article:", err).Error()
 		response.Translate = "article.create.error"
 
 		c.JSON(http.StatusBadRequest, response)
@@ -61,7 +62,7 @@ func (a articleController) CreateArticle(c *gin.Context) {
 	_, err = articleModel.CreateArticle(c, &articleRequest)
 	if err != nil {
 		response.Status = ERROR
-		response.Message = err.Error()
+		response.Message = tool.PrintLog("create_article:", err).Error()
 		response.Translate = "article.create.error"
 
 		c.JSON(http.StatusInternalServerError, response)
@@ -82,7 +83,6 @@ func (a articleController) GetArticleList(c *gin.Context) {
 
 	where := &model.Where{
 		Order: "ORDER BY a.id DESC",
-		Limit: "LIMIT 20",
 	}
 
 	articleList, err := articleModel.GetArticleList(c, where)

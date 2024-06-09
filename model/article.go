@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"time"
 )
 
 type ArticleModel interface {
@@ -27,17 +26,21 @@ func (postgres *PostgresRepository) CreateArticle(ctx context.Context, article *
 		INSERT INTO articles (
 			user_id
 			, category_id
-			, title
 			, content
+			, title
+			, tag
+			
 			, created_by
-		) VALUES ($1, $2, $3, $4, $5)
+		) VALUES ($1, $2, $3, $4, $5, $6)
 	`
 
 	return postgres.DB.ExecContext(ctx, queryScript,
 		article.UserId,
 		article.CategoryId,
-		article.Title,
 		article.Content,
+		article.Title,
+		article.Tag,
+
 		article.CreatedBy,
 	)
 }
@@ -51,15 +54,16 @@ func (postgres *PostgresRepository) GetArticleList(ctx context.Context, where *W
 		SELECT	a.id
 				, a.user_id
 				, a.category_id
-		    	, a.title
 		     	, a.content
-		     
+		    	, a.title
+		     	
+		     	, a.tag
+		     	, a.created_by
 		    	, a.created_at
+		     	, a.updated_by
 		    	, a.updated_at
-				, a.created_by
-				, a.updated_by
+				
 				, u.name AS user_name
-		     
 				, c.name AS category_name
 		FROM 	articles a
 				JOIN users u ON a.user_id = u.id
@@ -88,15 +92,16 @@ func (postgres *PostgresRepository) GetArticleList(ctx context.Context, where *W
 			&articleWithExtend.Id,
 			&articleWithExtend.UserId,
 			&articleWithExtend.CategoryId,
-			&articleWithExtend.Title,
 			&articleWithExtend.Content,
+			&articleWithExtend.Title,
 
-			&articleWithExtend.CreatedAt,
-			&articleWithExtend.UpdatedAt,
+			&articleWithExtend.Tag,
 			&articleWithExtend.CreatedBy,
+			&articleWithExtend.CreatedAt,
 			&articleWithExtend.UpdatedBy,
-			&articleWithExtend.UserName,
+			&articleWithExtend.UpdatedAt,
 
+			&articleWithExtend.UserName,
 			&articleWithExtend.CategoryName,
 		)
 
@@ -119,15 +124,16 @@ func (postgres *PostgresRepository) FindArticle(ctx context.Context, where *Wher
 		SELECT	a.id
 				, a.user_id
 				, a.category_id
-		    	, a.title
 		     	, a.content
-		     
+		    	, a.title
+		     	
+		     	, a.tag
+		     	, a.created_by
 		    	, a.created_at
+		     	, a.updated_by
 		    	, a.updated_at
-				, a.created_by
-				, a.updated_by
+				
 				, u.name AS user_name
-		     
 				, c.name AS category_name
 		FROM 	articles a
 				JOIN users u ON a.user_id = u.id
@@ -142,15 +148,16 @@ func (postgres *PostgresRepository) FindArticle(ctx context.Context, where *Wher
 		&articleWithExtend.Id,
 		&articleWithExtend.UserId,
 		&articleWithExtend.CategoryId,
-		&articleWithExtend.Title,
 		&articleWithExtend.Content,
+		&articleWithExtend.Title,
 
-		&articleWithExtend.CreatedAt,
-		&articleWithExtend.UpdatedAt,
+		&articleWithExtend.Tag,
 		&articleWithExtend.CreatedBy,
+		&articleWithExtend.CreatedAt,
 		&articleWithExtend.UpdatedBy,
-		&articleWithExtend.UserName,
+		&articleWithExtend.UpdatedAt,
 
+		&articleWithExtend.UserName,
 		&articleWithExtend.CategoryName,
 	)
 
@@ -166,24 +173,21 @@ func (postgres *PostgresRepository) UpdateArticle(ctx context.Context, article *
 
 	queryScript := `
 		UPDATE 	articles SET 
-		    	user_id = $1
-				, category_id = $2
+				category_id = $1
+		        , content = $2
 				, title = $3
-				, content = $4
-				, updated_at = $5
-				
-		        , updated_by = $6
-		WHERE 	id = $7
+		        , tag = $4	
+		        , updated_by = $5
+		WHERE 	id = $6
 		`
 
 	return postgres.DB.ExecContext(ctx, queryScript,
-		article.UserId,
 		article.CategoryId,
-		article.Title,
 		article.Content,
-		time.Now(),
-
+		article.Title,
+		article.Tag,
 		article.UpdatedBy,
+
 		article.Id,
 	)
 }

@@ -41,7 +41,7 @@ func (a authorizationController) Login(c *gin.Context) {
 	err := c.ShouldBindJSON(&loginCredential)
 	if err != nil {
 		response.Status = ERROR
-		response.Message = err.Error()
+		response.Message = tool.PrintLog("login", err).Error()
 		response.Translate = "user.error.login"
 
 		c.JSON(http.StatusUnauthorized, response)
@@ -56,7 +56,7 @@ func (a authorizationController) Login(c *gin.Context) {
 		}
 
 		response.Status = ERROR
-		response.Message = err.Error()
+		response.Message = tool.PrintLog("login", err).Error()
 		response.Translate = translate
 
 		c.JSON(http.StatusUnauthorized, response)
@@ -66,7 +66,7 @@ func (a authorizationController) Login(c *gin.Context) {
 	err = a.RedisClient.Set(c, strconv.FormatInt(userId, 10), token, 24*time.Hour).Err()
 	if err != nil {
 		response.Status = ERROR
-		response.Message = err.Error()
+		response.Message = tool.PrintLog("login", err).Error()
 		response.Translate = "user.error.login"
 
 		c.JSON(http.StatusUnauthorized, response)
@@ -81,7 +81,7 @@ func (a authorizationController) LoginProcess(ctx context.Context, cred *LoginCr
 	userId int64, token string, err error) {
 
 	where := &model.Where{
-		Parameter: "WHERE email = $1 AND status = $2",
+		Parameter: "WHERE email = $1 AND active = $2",
 		Values:    []interface{}{cred.Email, model.ACTIVE},
 	}
 

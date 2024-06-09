@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 )
 
 type CategoryModel interface {
@@ -44,11 +43,11 @@ func (postgres *PostgresRepository) GetCategoryList(ctx context.Context, where *
 	queryScript := `
 		SELECT	id
 				, name
+		     	, created_by
 		    	, created_at
-		    	, updated_at
-				, created_by
+		     	, updated_by
 		     
-				, updated_by
+		    	, updated_at
 		FROM 	categories
 	`
 
@@ -73,11 +72,11 @@ func (postgres *PostgresRepository) GetCategoryList(ctx context.Context, where *
 		err = rows.Scan(
 			&category.Id,
 			&category.Name,
-			&category.CreatedAt,
-			&category.UpdatedAt,
 			&category.CreatedBy,
-
+			&category.CreatedAt,
 			&category.UpdatedBy,
+
+			&category.UpdatedAt,
 		)
 
 		if err != nil {
@@ -97,11 +96,11 @@ func (postgres *PostgresRepository) FindCategory(ctx context.Context, where *Whe
 	queryScript := `
 		SELECT	id
 				, name
+		     	, created_by
 		    	, created_at
+		     	, updated_by
+		     
 		    	, updated_at
-				, created_by
-		
-				, updated_by
 		FROM 	categories
 	`
 
@@ -112,11 +111,11 @@ func (postgres *PostgresRepository) FindCategory(ctx context.Context, where *Whe
 	err = row.Scan(
 		&category.Id,
 		&category.Name,
-		&category.CreatedAt,
-		&category.UpdatedAt,
 		&category.CreatedBy,
-
+		&category.CreatedAt,
 		&category.UpdatedBy,
+
+		&category.UpdatedAt,
 	)
 
 	if err != nil {
@@ -132,14 +131,12 @@ func (postgres *PostgresRepository) UpdateCategory(ctx context.Context, category
 	queryScript := `
 		UPDATE 	categories SET 
 		    	name = $1
-				, updated_at = $2
-				, updated_by = $3
-		WHERE 	id = $4
+				, updated_by = $2
+		WHERE 	id = $3
 		`
 
 	return postgres.DB.ExecContext(ctx, queryScript,
 		strings.ToLower(category.Name),
-		time.Now(),
 		category.UpdatedBy,
 		category.Id,
 	)
