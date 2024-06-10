@@ -21,7 +21,7 @@ func AuthMiddleware(config *controller.Config) gin.HandlerFunc {
 
 		bearerToken := c.Request.Header.Get("Authorization")
 		if bearerToken == "" {
-			response.Message = "token required"
+			response.Message = tool.PrintLog("get header authorization", errors.New("token required")).Error()
 			c.JSON(http.StatusUnauthorized, response)
 			c.Abort()
 			return
@@ -29,7 +29,7 @@ func AuthMiddleware(config *controller.Config) gin.HandlerFunc {
 
 		bearerTokenSplit := strings.Split(bearerToken, " ")
 		if len(bearerTokenSplit) < 2 {
-			response.Message = "token required"
+			response.Message = tool.PrintLog("bearer token split", errors.New("token required")).Error()
 			c.JSON(http.StatusUnauthorized, response)
 			c.Abort()
 			return
@@ -39,7 +39,7 @@ func AuthMiddleware(config *controller.Config) gin.HandlerFunc {
 
 		claims, err := tool.VerifyJWT(token)
 		if err != nil {
-			response.Message = err.Error()
+			response.Message = tool.PrintLog("verify JWT", err).Error()
 			c.JSON(http.StatusUnauthorized, response)
 			c.Abort()
 			return
@@ -50,14 +50,14 @@ func AuthMiddleware(config *controller.Config) gin.HandlerFunc {
 
 		resultToken, err := config.RedisClient.Get(c, userIdStr).Result()
 		if err != nil {
-			response.Message = err.Error()
+			response.Message = tool.PrintLog("get redis token", err).Error()
 			c.JSON(http.StatusUnauthorized, response)
 			c.Abort()
 			return
 		}
 
 		if resultToken != token {
-			response.Message = errors.New("token invalid").Error()
+			response.Message = tool.PrintLog("verify token with redis", errors.New("token invalid")).Error()
 			c.JSON(http.StatusUnauthorized, response)
 			c.Abort()
 			return
@@ -65,7 +65,7 @@ func AuthMiddleware(config *controller.Config) gin.HandlerFunc {
 
 		userIdInt, err := strconv.ParseInt(userIdStr, 10, 64)
 		if resultToken != token {
-			response.Message = err.Error()
+			response.Message = tool.PrintLog("parseInt userId", err).Error()
 			c.JSON(http.StatusInternalServerError, response)
 			c.Abort()
 			return

@@ -34,7 +34,7 @@ type Article struct {
 	CategoryId int64      `json:"category_id"`
 	Content    string     `json:"content"`
 	Title      string     `json:"title"`
-	Tag        *[]string  `json:"tag"`
+	Tags       *string    `json:"tags,omitempty"`
 	CreatedBy  int64      `json:"created_by"`
 	CreatedAt  time.Time  `json:"created_at"`
 	UpdatedAt  *time.Time `json:"updated_at,omitempty"`

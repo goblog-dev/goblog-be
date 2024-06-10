@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 )
 
 type ArticleModel interface {
@@ -22,13 +23,16 @@ func NewArticleModel(db *sql.DB) ArticleModel {
 func (postgres *PostgresRepository) CreateArticle(ctx context.Context, article *Article) (
 	result sql.Result, err error) {
 
+	lowerTags := strings.ToLower(*article.Tags)
+	cleanTags := strings.Replace(lowerTags, " ", "", -1)
+
 	queryScript := `
 		INSERT INTO articles (
 			user_id
 			, category_id
 			, content
 			, title
-			, tag
+			, tags
 			
 			, created_by
 		) VALUES ($1, $2, $3, $4, $5, $6)
@@ -39,7 +43,7 @@ func (postgres *PostgresRepository) CreateArticle(ctx context.Context, article *
 		article.CategoryId,
 		article.Content,
 		article.Title,
-		article.Tag,
+		cleanTags,
 
 		article.CreatedBy,
 	)
@@ -57,7 +61,7 @@ func (postgres *PostgresRepository) GetArticleList(ctx context.Context, where *W
 		     	, a.content
 		    	, a.title
 		     	
-		     	, a.tag
+		     	, a.tags
 		     	, a.created_by
 		    	, a.created_at
 		     	, a.updated_by
@@ -95,7 +99,7 @@ func (postgres *PostgresRepository) GetArticleList(ctx context.Context, where *W
 			&articleWithExtend.Content,
 			&articleWithExtend.Title,
 
-			&articleWithExtend.Tag,
+			&articleWithExtend.Tags,
 			&articleWithExtend.CreatedBy,
 			&articleWithExtend.CreatedAt,
 			&articleWithExtend.UpdatedBy,
@@ -127,7 +131,7 @@ func (postgres *PostgresRepository) FindArticle(ctx context.Context, where *Wher
 		     	, a.content
 		    	, a.title
 		     	
-		     	, a.tag
+		     	, a.tags
 		     	, a.created_by
 		    	, a.created_at
 		     	, a.updated_by
@@ -151,7 +155,7 @@ func (postgres *PostgresRepository) FindArticle(ctx context.Context, where *Wher
 		&articleWithExtend.Content,
 		&articleWithExtend.Title,
 
-		&articleWithExtend.Tag,
+		&articleWithExtend.Tags,
 		&articleWithExtend.CreatedBy,
 		&articleWithExtend.CreatedAt,
 		&articleWithExtend.UpdatedBy,
@@ -176,7 +180,7 @@ func (postgres *PostgresRepository) UpdateArticle(ctx context.Context, article *
 				category_id = $1
 		        , content = $2
 				, title = $3
-		        , tag = $4	
+		        , tags = $4	
 		        , updated_by = $5
 		WHERE 	id = $6
 		`
@@ -185,7 +189,7 @@ func (postgres *PostgresRepository) UpdateArticle(ctx context.Context, article *
 		article.CategoryId,
 		article.Content,
 		article.Title,
-		article.Tag,
+		article.Tags,
 		article.UpdatedBy,
 
 		article.Id,
