@@ -115,7 +115,7 @@ func (a authorizationController) Logout(c *gin.Context) {
 	userId, err := GetCurrentUserIdLoggedIn(c)
 	if err != nil {
 		response.Status = ERROR
-		response.Message = err.Error()
+		response.Message = tool.PrintLog("login", err).Error()
 		response.Translate = "user.error.logout"
 
 		c.JSON(http.StatusUnauthorized, response)
@@ -125,7 +125,7 @@ func (a authorizationController) Logout(c *gin.Context) {
 	err = a.RedisClient.Del(c, strconv.FormatInt(userId, 10)).Err()
 	if err != nil {
 		response.Status = ERROR
-		response.Message = err.Error()
+		response.Message = tool.PrintLog("login", err).Error()
 		response.Translate = "user.error.logout"
 
 		c.JSON(http.StatusUnauthorized, response)
