@@ -8,14 +8,16 @@ import (
 
 func NewRouter(r *gin.Engine, config *controller.Config) {
 	userController := controller.NewUserController(config)
-	articleController := controller.NewArticleController(config)
 	categoryController := controller.NewCategoryController(config)
 	authorizationController := controller.NewAuthorizationController(config)
+	articleController := controller.NewArticleController(config)
 
 	r.GET("/ping", controller.HealthCheck)
 
 	api := r.Group("/api")
 	v1 := api.Group("/v1")
+
+	v1.Use(middleware.CORSMiddleware())
 
 	User(v1, userController, config)
 	Article(v1, articleController, config)
@@ -28,7 +30,7 @@ func User(r *gin.RouterGroup, controller controller.UserController, config *cont
 	//users := r.Group("/users")
 	{
 		users.POST("/create", controller.CreateUser)
-		users.GET("/", controller.GetUserList)
+		users.GET("", controller.GetUserList)
 		users.PUT("/update", controller.UpdateUser)
 		users.GET("/:id", controller.GetUser)
 	}
@@ -37,7 +39,7 @@ func User(r *gin.RouterGroup, controller controller.UserController, config *cont
 func Article(r *gin.RouterGroup, controller controller.ArticleController, config *controller.Config) {
 	articles := r.Group("/articles")
 	{
-		articles.GET("/", controller.GetArticleList)
+		articles.GET("", controller.GetArticleList)
 		articles.GET("/:id", controller.GetArticle)
 		articles.Use(middleware.AuthMiddleware(config))
 		{
@@ -51,7 +53,7 @@ func Article(r *gin.RouterGroup, controller controller.ArticleController, config
 func Category(r *gin.RouterGroup, controller controller.CategoryController, config *controller.Config) {
 	categories := r.Group("/categories")
 	{
-		categories.GET("/", controller.GetCategoryList)
+		categories.GET("", controller.GetCategoryList)
 		categories.GET("/:id", controller.GetCategory)
 		categories.Use(middleware.AuthMiddleware(config))
 		{
