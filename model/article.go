@@ -56,8 +56,20 @@ func (postgres *PostgresRepository) GetArticleList(ctx context.Context, where *W
 
 	queryScript := `
 		SELECT	a.id
+				, a.user_id
+				, a.category_id
+		     	, a.content
 		    	, a.title
-		     	, c.name AS category_name
+		     	
+		     	, a.tags
+		     	, a.created_by
+		    	, a.created_at
+		     	, a.updated_by
+		    	, a.updated_at
+				
+				, u.name AS user_name
+				, c.name AS category_name
+				, u.page
 		FROM 	articles a
 				JOIN users u ON a.user_id = u.id
 				JOIN categories c ON a.category_id = c.id
@@ -83,8 +95,20 @@ func (postgres *PostgresRepository) GetArticleList(ctx context.Context, where *W
 
 		err = rows.Scan(
 			&articleWithExtend.Id,
+			&articleWithExtend.UserId,
+			&articleWithExtend.CategoryId,
+			&articleWithExtend.Content,
 			&articleWithExtend.Title,
+
+			&articleWithExtend.Tags,
+			&articleWithExtend.CreatedBy,
+			&articleWithExtend.CreatedAt,
+			&articleWithExtend.UpdatedBy,
+			&articleWithExtend.UpdatedAt,
+
+			&articleWithExtend.UserName,
 			&articleWithExtend.CategoryName,
+			&articleWithExtend.Page,
 		)
 
 		if err != nil {
