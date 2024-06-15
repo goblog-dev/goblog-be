@@ -170,18 +170,15 @@ func (a articleController) GetArticle(c *gin.Context) {
 func (a articleController) FindCurrentArticle(ctx context.Context, resp *Response, articleId string) (
 	currArticle *model.ArticleWithExtend, response *Response, httpStatus int, err error) {
 
-	response.Status = ERROR
-	response.Translate = "article.get.error"
-	httpStatus = http.StatusInternalServerError
-
 	articleIdInt, err := strconv.ParseInt(articleId, 10, 64)
 	if err != nil {
+		response.Message = tool.PrintLog("FindCurrentArticle", err).Error()
 		return
 	}
 
 	response = resp
 	where := &model.Where{
-		Parameter: "WHERE id=$1",
+		Parameter: "WHERE a.id=$1",
 		Values:    []any{articleIdInt},
 	}
 
@@ -189,6 +186,7 @@ func (a articleController) FindCurrentArticle(ctx context.Context, resp *Respons
 	currArticle, err = articleModel.FindArticle(ctx, where)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			response.Message = tool.PrintLog("FindCurrentArticle", err).Error()
 			response.Translate = "article.not.found"
 			httpStatus = http.StatusNotFound
 		}

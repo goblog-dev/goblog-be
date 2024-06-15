@@ -27,7 +27,8 @@ func (postgres *PostgresRepository) CreateUser(ctx context.Context, user *User) 
 			, email
 			, password
 			, created_by
-		) VALUES ($1, $2, $3, $4)
+			, page
+		) VALUES ($1, $2, $3, $4, $5)
 	`
 
 	return postgres.DB.ExecContext(ctx, queryScript,
@@ -35,6 +36,7 @@ func (postgres *PostgresRepository) CreateUser(ctx context.Context, user *User) 
 		strings.ToLower(user.Email),
 		user.Password,
 		user.CreatedBy,
+		user.Page,
 	)
 }
 
@@ -55,6 +57,7 @@ func (postgres *PostgresRepository) GetUserList(ctx context.Context, where *Wher
 		    	, updated_at
 		
 				, updated_by
+				, page
 		FROM 	users
 	`
 
@@ -90,6 +93,7 @@ func (postgres *PostgresRepository) GetUserList(ctx context.Context, where *Wher
 			&user.UpdatedAt,
 
 			&user.UpdatedBy,
+			&user.Page,
 		)
 
 		if err != nil {
@@ -118,6 +122,7 @@ func (postgres *PostgresRepository) FindUser(ctx context.Context, where *Where) 
 		    	, updated_at
 		
 				, updated_by
+				, page
 		FROM 	users
 	`
 
@@ -139,6 +144,7 @@ func (postgres *PostgresRepository) FindUser(ctx context.Context, where *Where) 
 		&user.UpdatedAt,
 
 		&user.UpdatedBy,
+		&user.Page,
 	)
 
 	if err != nil {

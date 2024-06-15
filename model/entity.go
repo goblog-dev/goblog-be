@@ -24,8 +24,9 @@ type PostgresRepository struct {
 }
 
 type ArticleExtend struct {
-	UserName     string `json:"user_name"`
-	CategoryName string `json:"category_name"`
+	UserName     string  `json:"user_name"`
+	CategoryName string  `json:"category_name"`
+	Page         *string `json:"page"`
 }
 
 type Article struct {
@@ -63,6 +64,7 @@ type User struct {
 	Online    Status     `json:"online"`
 	Active    Status     `json:"active"`
 	Avatar    *string    `json:"avatar,omitempty"`
+	Page      *string    `json:"page,omitempty"`
 	CreatedBy int64      `json:"created_by"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
