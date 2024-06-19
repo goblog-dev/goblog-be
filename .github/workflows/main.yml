@@ -27,21 +27,21 @@ jobs:
       - name: Create .env.local
         run: |
           touch .env
-          echo APP_SERVER_PORT=${{ APP_SERVER_PORT }} >> .env
-          echo GIN_MODE=${{ GIN_MODE }} >> .env
-          echo APP_CLIENT_FILE=${{ APP_CLIENT_FILE }} >> .env
-          echo POSTGRES_DB_HOST=${{ POSTGRES_DB_HOST }} >> .env
-          echo POSTGRES_DB_PORT=${{ POSTGRES_DB_PORT }} >> .env
-          echo POSTGRES_DB_USER=${{ POSTGRES_DB_USER }} >> .env
-          echo POSTGRES_DB_PASS=${{ POSTGRES_DB_PASS }} >> .env
-          echo POSTGRES_DB_PASS=${{ POSTGRES_DB_NAME }} >> .env
-          echo POSTGRES_DB_SSL_MODE=${{ POSTGRES_DB_SSL_MODE }} >> .env
-          echo JWT_SIGNING_KEY=${{ JWT_SIGNING_KEY }} >> .env
-          echo REDIS_HOST=${{ REDIS_HOST }} >> .env
-          echo REDIS_PORT=${{ REDIS_PORT }} >> .env
-          echo REDIS_PASSWORD=${{ REDIS_PASSWORD }} >> .env
-          echo REDIS_DB=${{ REDIS_DB }} >> .env
-          echo REDIS_USER=${{ REDIS_USER }} >> .env
+          echo APP_SERVER_PORT=${{ secrets.APP_SERVER_PORT }} >> .env
+          echo GIN_MODE=${{ secrets.GIN_MODE }} >> .env
+          echo APP_CLIENT_FILE=${{ secrets.APP_CLIENT_FILE }} >> .env
+          echo POSTGRES_DB_HOST=${{ secrets.POSTGRES_DB_HOST }} >> .env
+          echo POSTGRES_DB_PORT=${{ secrets.POSTGRES_DB_PORT }} >> .env
+          echo POSTGRES_DB_USER=${{ secrets.POSTGRES_DB_USER }} >> .env
+          echo POSTGRES_DB_PASS=${{ secrets.POSTGRES_DB_PASS }} >> .env
+          echo POSTGRES_DB_PASS=${{ secrets.POSTGRES_DB_NAME }} >> .env
+          echo POSTGRES_DB_SSL_MODE=${{ secrets.POSTGRES_DB_SSL_MODE }} >> .env
+          echo JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }} >> .env
+          echo REDIS_HOST=${{ secrets.REDIS_HOST }} >> .env
+          echo REDIS_PORT=${{ secrets.REDIS_PORT }} >> .env
+          echo REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }} >> .env
+          echo REDIS_DB=${{ secrets.REDIS_DB }} >> .env
+          echo REDIS_USER=${{ secrets.REDIS_USER }} >> .env
           cat .env
           ls -a
 
