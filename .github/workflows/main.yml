@@ -1,0 +1,58 @@
+# This is a basic workflow to help you get started with Actions
+# test 3
+name: Deploy to GAE
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  deploy:
+    name: Deploying to Google Cloud
+    runs-on: ubuntu-latest
+
+    steps:
+      # checkout the latest codebase
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # create env file
+      - name: Create .env.local
+        run: |
+          touch .env
+          echo APP_SERVER_PORT=${{ APP_SERVER_PORT }} >> .env
+          echo GIN_MODE=${{ GIN_MODE }} >> .env
+          echo APP_CLIENT_FILE=${{ APP_CLIENT_FILE }} >> .env
+          echo POSTGRES_DB_HOST=${{ POSTGRES_DB_HOST }} >> .env
+          echo POSTGRES_DB_PORT=${{ POSTGRES_DB_PORT }} >> .env
+          echo POSTGRES_DB_USER=${{ POSTGRES_DB_USER }} >> .env
+          echo POSTGRES_DB_PASS=${{ POSTGRES_DB_PASS }} >> .env
+          echo POSTGRES_DB_PASS=${{ POSTGRES_DB_NAME }} >> .env
+          echo POSTGRES_DB_SSL_MODE=${{ POSTGRES_DB_SSL_MODE }} >> .env
+          echo JWT_SIGNING_KEY=${{ JWT_SIGNING_KEY }} >> .env
+          echo REDIS_HOST=${{ REDIS_HOST }} >> .env
+          echo REDIS_PORT=${{ REDIS_PORT }} >> .env
+          echo REDIS_PASSWORD=${{ REDIS_PASSWORD }} >> .env
+          echo REDIS_DB=${{ REDIS_DB }} >> .env
+          echo REDIS_USER=${{ REDIS_USER }} >> .env
+          cat .env
+          ls -a
+
+      # deploy the code
+      - name: Deploy to App Engine
+        id: deploy
+        uses: google-github-actions/deploy-appengine@v0.2.0
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          credentials: ${{ secrets.GCP_CREDENTIALS }}
+
+      # test to ensure the app had been deployed successfully
+      - name: Test
+        run: curl "${{ steps.deploy.outputs.url }}/ping"

@@ -119,6 +119,7 @@ func (postgres *PostgresRepository) FindArticle(ctx context.Context, where *Wher
 				, c.name AS category_name
 				, u.page
 				, a.description
+				, a.image
 		FROM 	articles a
 				JOIN users u ON a.user_id = u.id
 				JOIN categories c ON a.category_id = c.id
@@ -145,6 +146,7 @@ func (postgres *PostgresRepository) FindArticle(ctx context.Context, where *Wher
 		&articleWithExtend.CategoryName,
 		&articleWithExtend.Page,
 		&articleWithExtend.Description,
+		&articleWithExtend.Image,
 	)
 
 	if err != nil {

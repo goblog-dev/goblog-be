@@ -31,6 +31,7 @@ type Article struct {
 	Title       string     `json:"title" db:"title"`
 	Tags        *string    `json:"tags,omitempty" db:"tags"`
 	Description *string    `json:"description" db:"description"`
+	Image       *string    `json:"image,omitempty" db:"image"`
 	CreatedBy   int64      `json:"created_by" db:"created_by"`
 	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt   *time.Time `json:"updated_at,omitempty" db:"updated_at"`
