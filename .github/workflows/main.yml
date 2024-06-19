@@ -55,4 +55,4 @@ jobs:
 
       # test to ensure the app had been deployed successfully
       - name: Test
-        run: curl "${{ steps.deploy.outputs.url }}/ping"
+        run: curl "${{ secrets.LIVE_URL }}/ping"
