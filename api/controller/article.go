@@ -3,12 +3,16 @@ package controller
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/michaelwp/goblog/model"
 	"github.com/michaelwp/goblog/tool"
+	"github.com/redis/go-redis/v9"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type ArticleController interface {
@@ -117,6 +121,18 @@ func (a articleController) UpdateArticle(c *gin.Context) {
 		return
 	}
 
+	articleIdStr := strconv.Itoa(int(articleRequest.Id))
+
+	err = a.RedisClient.Del(c, "article:"+articleIdStr).Err()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		response.Status = ERROR
+		response.Message = err.Error()
+		response.Translate = "article.cache.delete.error"
+
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
 	err = a.UpdateCurrentArticle(c, &articleRequest)
 	if err != nil {
 		response.Status = ERROR
@@ -156,15 +172,73 @@ func (a articleController) GetArticle(c *gin.Context) {
 	}
 
 	articleId := c.Param("id")
+
+	result, err := a.RedisClient.Get(c, "article:"+articleId).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		response.Status = ERROR
+		response.Message = err.Error()
+		response.Translate = "article.cache.get.error"
+
+		c.JSON(http.StatusInternalServerError, response)
+		return
+	}
+
+	if result != "" {
+		var articleWithExtend model.ArticleWithExtend
+
+		err = json.Unmarshal([]byte(result), &articleWithExtend)
+		if err != nil {
+			response.Status = ERROR
+			response.Message = err.Error()
+			response.Translate = "article.json.unmarshal.error"
+
+			c.JSON(http.StatusInternalServerError, response)
+			return
+		}
+
+		response.Data = articleWithExtend
+		c.JSON(200, response)
+		return
+	}
+
 	currArticle, response, httpStatus, err := a.FindCurrentArticle(c, response, articleId)
 	if err != nil {
+		response.Status = ERROR
 		response.Message = err.Error()
+		response.Translate = "article.get.error"
+
 		c.JSON(httpStatus, response)
 		return
 	}
 
+	if currArticle != nil {
+		err = a.cacheArticle(c, articleId, currArticle)
+		if err != nil {
+			response.Status = ERROR
+			response.Message = err.Error()
+			response.Translate = "article.cache.set.error"
+
+			c.JSON(httpStatus, response)
+			return
+		}
+	}
+
 	response.Data = currArticle
 	c.JSON(200, response)
+}
+
+func (a articleController) cacheArticle(ctx context.Context, key string, article *model.ArticleWithExtend) error {
+	jsonData, err := json.Marshal(article)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error marshalling JSON: %v", err))
+	}
+
+	err = a.RedisClient.Set(ctx, "article:"+key, jsonData, 1*time.Hour).Err()
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error setting data in Redis: %v", err))
+	}
+
+	return nil
 }
 
 func (a articleController) FindCurrentArticle(ctx context.Context, resp *Response, articleId string) (

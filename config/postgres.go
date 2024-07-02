@@ -14,5 +14,12 @@ func (db *PostgresDBConfig) Connect() (postgresDb *sql.DB, err error) {
 	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		db.Host, db.Port, db.User, db.Pass, db.Name, db.SslMode)
 
-	return sql.Open("postgres", psqlInfo)
+	sqlClient, err := sql.Open("postgres", psqlInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	sqlClient.SetMaxIdleConns(5)
+
+	return sqlClient, nil
 }

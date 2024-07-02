@@ -34,8 +34,10 @@ func (postgres *PostgresRepository) CreateArticle(ctx context.Context, article *
 			, title
 			, tags
 			
+			, description
+			, image
 			, created_by
-		) VALUES ($1, $2, $3, $4, $5, $6)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 
 	return postgres.DB.ExecContext(ctx, queryScript,
@@ -45,6 +47,8 @@ func (postgres *PostgresRepository) CreateArticle(ctx context.Context, article *
 		article.Title,
 		cleanTags,
 
+		article.Description,
+		article.Image,
 		article.CreatedBy,
 	)
 }
@@ -159,23 +163,33 @@ func (postgres *PostgresRepository) FindArticle(ctx context.Context, where *Wher
 func (postgres *PostgresRepository) UpdateArticle(ctx context.Context, article *Article) (
 	result sql.Result, err error) {
 
+	lowerTags := strings.ToLower(*article.Tags)
+	cleanTags := strings.Replace(lowerTags, " ", "", -1)
+
 	queryScript := `
 		UPDATE 	articles SET 
-				category_id = $1
-		        , content = $2
-				, title = $3
-		        , tags = $4	
-		        , updated_by = $5
-		WHERE 	id = $6
+		        user_id = $1
+				, category_id = $2
+		        , content = $3
+				, title = $4
+		        , tags = $5
+		        
+		        , description = $6
+		        , image = $7
+		        , updated_by = $8
+		WHERE 	id = $9
 		`
 
 	return postgres.DB.ExecContext(ctx, queryScript,
+		article.UserId,
 		article.CategoryId,
 		article.Content,
 		article.Title,
-		article.Tags,
-		article.UpdatedBy,
+		cleanTags,
 
+		article.Description,
+		article.Image,
+		article.UpdatedBy,
 		article.Id,
 	)
 }
