@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/michaelwp/goblog/entities"
 	"github.com/michaelwp/goblog/model"
 	"github.com/michaelwp/goblog/tool"
 	"net/http"
@@ -32,7 +33,7 @@ func (u userController) CreateUser(c *gin.Context) {
 		Translate: "user.create.success",
 	}
 
-	var userRequest model.User
+	var userRequest entities.User
 	err := c.ShouldBindJSON(&userRequest)
 	if err != nil {
 		response.Status = ERROR
@@ -56,7 +57,7 @@ func (u userController) CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, response)
 }
 
-func (u userController) InsertUser(ctx context.Context, userRequest *model.User) (err error) {
+func (u userController) InsertUser(ctx context.Context, userRequest *entities.User) (err error) {
 	where := &model.Where{
 		Parameter: "WHERE email=$1",
 		Values:    []any{userRequest.Email},

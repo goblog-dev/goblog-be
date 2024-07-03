@@ -7,9 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/michaelwp/goblog/dto"
+	"github.com/michaelwp/goblog/entities"
 	"github.com/michaelwp/goblog/model"
 	"github.com/michaelwp/goblog/tool"
 	"github.com/redis/go-redis/v9"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -38,7 +41,7 @@ func (a articleController) CreateArticle(c *gin.Context) {
 		Translate: "article.create.success",
 	}
 
-	var articleRequest model.Article
+	var articleRequest entities.Article
 	err := c.ShouldBindJSON(&articleRequest)
 	if err != nil {
 		response.Status = ERROR
@@ -73,6 +76,16 @@ func (a articleController) CreateArticle(c *gin.Context) {
 		return
 	}
 
+	err = a.RedisClient.Del(c, "articleList").Err()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		response.Status = ERROR
+		response.Message = err.Error()
+		response.Translate = "article.cache.delete.error"
+
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
 	c.JSON(http.StatusCreated, response)
 }
 
@@ -83,20 +96,54 @@ func (a articleController) GetArticleList(c *gin.Context) {
 		Translate: "article.get.success",
 	}
 
-	articleModel := model.NewArticleModel(a.Config.Postgres)
-
-	where := &model.Where{
-		Order: "ORDER BY a.id DESC",
-	}
-
-	articleList, err := articleModel.GetArticleList(c, where)
-	if err != nil {
+	result, err := a.RedisClient.Get(c, "articleList").Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
 		response.Status = ERROR
 		response.Message = err.Error()
+		response.Translate = "article.cache.get.error"
+
+		c.JSON(http.StatusInternalServerError, response)
+		return
+	}
+
+	if result != "" {
+		var articleList []*dto.ArticleWithExtend
+
+		err = json.Unmarshal([]byte(result), &articleList)
+		if err != nil {
+			response.Status = ERROR
+			response.Message = err.Error()
+			response.Translate = "article.json.unmarshal.error"
+
+			c.JSON(http.StatusInternalServerError, response)
+			return
+		}
+
+		response.Data = articleList
+		c.JSON(200, response)
+		return
+	}
+
+	articleList, err := a.GroupingArticleList(c)
+	if err != nil {
+		response.Status = ERROR
+		response.Message = tool.PrintLog("get_article_list:", err).Error()
 		response.Translate = "article.get.error"
 
 		c.JSON(http.StatusInternalServerError, response)
 		return
+	}
+
+	if articleList != nil {
+		err = a.cacheArticleList(c, "articleList", articleList)
+		if err != nil {
+			response.Status = ERROR
+			response.Message = err.Error()
+			response.Translate = "article.cache.set.error"
+
+			c.JSON(http.StatusInternalServerError, response)
+			return
+		}
 	}
 
 	response.Data = articleList
@@ -110,7 +157,7 @@ func (a articleController) UpdateArticle(c *gin.Context) {
 		Translate: "article.update.success",
 	}
 
-	var articleRequest model.Article
+	var articleRequest entities.Article
 	err := c.ShouldBindJSON(&articleRequest)
 	if err != nil {
 		response.Status = ERROR
@@ -123,16 +170,6 @@ func (a articleController) UpdateArticle(c *gin.Context) {
 
 	articleIdStr := strconv.Itoa(int(articleRequest.Id))
 
-	err = a.RedisClient.Del(c, "article:"+articleIdStr).Err()
-	if err != nil && !errors.Is(err, redis.Nil) {
-		response.Status = ERROR
-		response.Message = err.Error()
-		response.Translate = "article.cache.delete.error"
-
-		c.JSON(http.StatusBadRequest, response)
-		return
-	}
-
 	err = a.UpdateCurrentArticle(c, &articleRequest)
 	if err != nil {
 		response.Status = ERROR
@@ -143,10 +180,20 @@ func (a articleController) UpdateArticle(c *gin.Context) {
 		return
 	}
 
+	err = a.RedisClient.Del(c, "article:"+articleIdStr).Err()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		response.Status = ERROR
+		response.Message = err.Error()
+		response.Translate = "article.cache.delete.error"
+
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
 	c.JSON(200, response)
 }
 
-func (a articleController) UpdateCurrentArticle(ctx context.Context, articleRequest *model.Article) (err error) {
+func (a articleController) UpdateCurrentArticle(ctx context.Context, articleRequest *entities.Article) (err error) {
 	userId, err := GetCurrentUserIdLoggedIn(ctx)
 	if err != nil {
 		return
@@ -184,7 +231,7 @@ func (a articleController) GetArticle(c *gin.Context) {
 	}
 
 	if result != "" {
-		var articleWithExtend model.ArticleWithExtend
+		var articleWithExtend dto.ArticleWithExtend
 
 		err = json.Unmarshal([]byte(result), &articleWithExtend)
 		if err != nil {
@@ -212,13 +259,13 @@ func (a articleController) GetArticle(c *gin.Context) {
 	}
 
 	if currArticle != nil {
-		err = a.cacheArticle(c, articleId, currArticle)
+		err = a.cacheArticle(c, "article:"+articleId, currArticle)
 		if err != nil {
 			response.Status = ERROR
 			response.Message = err.Error()
 			response.Translate = "article.cache.set.error"
 
-			c.JSON(httpStatus, response)
+			c.JSON(http.StatusInternalServerError, response)
 			return
 		}
 	}
@@ -227,13 +274,27 @@ func (a articleController) GetArticle(c *gin.Context) {
 	c.JSON(200, response)
 }
 
-func (a articleController) cacheArticle(ctx context.Context, key string, article *model.ArticleWithExtend) error {
+func (a articleController) cacheArticle(ctx context.Context, key string, article *dto.ArticleWithExtend) error {
 	jsonData, err := json.Marshal(article)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Error marshalling JSON: %v", err))
 	}
 
-	err = a.RedisClient.Set(ctx, "article:"+key, jsonData, 1*time.Hour).Err()
+	err = a.RedisClient.Set(ctx, key, jsonData, 1*time.Hour).Err()
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error setting data in Redis: %v", err))
+	}
+
+	return nil
+}
+
+func (a articleController) cacheArticleList(ctx context.Context, key string, articleList []*dto.ArticleWithExtend) error {
+	jsonData, err := json.Marshal(articleList)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error marshalling JSON: %v", err))
+	}
+
+	err = a.RedisClient.Set(ctx, key, jsonData, 1*time.Hour).Err()
 	if err != nil {
 		return errors.New(fmt.Sprintf("Error setting data in Redis: %v", err))
 	}
@@ -242,7 +303,7 @@ func (a articleController) cacheArticle(ctx context.Context, key string, article
 }
 
 func (a articleController) FindCurrentArticle(ctx context.Context, resp *Response, articleId string) (
-	currArticle *model.ArticleWithExtend, response *Response, httpStatus int, err error) {
+	currArticle *dto.ArticleWithExtend, response *Response, httpStatus int, err error) {
 
 	articleIdInt, err := strconv.ParseInt(articleId, 10, 64)
 	if err != nil {
@@ -301,4 +362,36 @@ func (a articleController) DeleteArticle(c *gin.Context) {
 	}
 
 	c.JSON(200, response)
+}
+
+func (a articleController) GroupingArticleList(ctx context.Context) (
+	articleList []*dto.ArticleWithExtend, err error) {
+
+	articleModel := model.NewArticleModel(a.Config.Postgres)
+	articles, err := articleModel.GetAvailableCategoryId(ctx)
+	if err != nil {
+		return
+	}
+
+	articleList = []*dto.ArticleWithExtend{}
+
+	for _, article := range articles {
+		log.Println("categoryId:", article.CategoryId)
+
+		where := &model.Where{
+			Parameter: "WHERE a.category_id=$1",
+			Values:    []any{article.CategoryId},
+			Order:     "ORDER BY a.id DESC",
+			Limit:     "LIMIT 20",
+		}
+
+		subArticleList, err := articleModel.GetArticleList(ctx, where)
+		if err != nil {
+			return nil, err
+		}
+
+		articleList = append(articleList, subArticleList...)
+	}
+
+	return
 }

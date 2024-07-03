@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/michaelwp/goblog/entities"
 	"github.com/michaelwp/goblog/model"
 	"net/http"
 )
@@ -31,7 +32,7 @@ func (g categoryController) CreateCategory(c *gin.Context) {
 		Translate: "category.create.success",
 	}
 
-	var categoryRequest model.Category
+	var categoryRequest entities.Category
 	err := c.ShouldBindJSON(&categoryRequest)
 	if err != nil {
 		response.Status = ERROR
@@ -55,7 +56,7 @@ func (g categoryController) CreateCategory(c *gin.Context) {
 	c.JSON(http.StatusCreated, response)
 }
 
-func (g categoryController) InsertCategory(ctx context.Context, categoryRequest *model.Category) (err error) {
+func (g categoryController) InsertCategory(ctx context.Context, categoryRequest *entities.Category) (err error) {
 	where := &model.Where{
 		Parameter: "WHERE name=$1",
 		Values:    []any{categoryRequest.Name},

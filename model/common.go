@@ -1,5 +1,7 @@
 package model
 
+import "database/sql"
+
 func ValidateWhere(where *Where) (whereNew *Where) {
 	whereNew = where
 
@@ -13,4 +15,20 @@ func ValidateWhere(where *Where) (whereNew *Where) {
 	}
 
 	return
+}
+
+type PostgresRepository struct {
+	DB *sql.DB
+}
+
+const (
+	INACTIVE = false
+	ACTIVE   = true
+)
+
+type Where struct {
+	Parameter string
+	Values    []any
+	Order     string
+	Limit     string
 }

@@ -4,15 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/michaelwp/goblog/entities"
 	"log"
 	"strings"
 )
 
 type CategoryModel interface {
-	CreateCategory(ctx context.Context, category *Category) (result sql.Result, err error)
-	GetCategoryList(ctx context.Context, where *Where) (categoryList []*Category, err error)
-	FindCategory(ctx context.Context, where *Where) (category *Category, err error)
-	UpdateCategory(ctx context.Context, category *Category) (result sql.Result, err error)
+	CreateCategory(ctx context.Context, category *entities.Category) (result sql.Result, err error)
+	GetCategoryList(ctx context.Context, where *Where) (categoryList []*entities.Category, err error)
+	FindCategory(ctx context.Context, where *Where) (category *entities.Category, err error)
+	UpdateCategory(ctx context.Context, category *entities.Category) (result sql.Result, err error)
 	DeleteCategory(ctx context.Context, categoryId int64) (result sql.Result, err error)
 }
 
@@ -20,7 +21,7 @@ func NewCategoryModel(db *sql.DB) CategoryModel {
 	return &PostgresRepository{db}
 }
 
-func (postgres *PostgresRepository) CreateCategory(ctx context.Context, category *Category) (
+func (postgres *PostgresRepository) CreateCategory(ctx context.Context, category *entities.Category) (
 	result sql.Result, err error) {
 
 	queryScript := `
@@ -37,7 +38,7 @@ func (postgres *PostgresRepository) CreateCategory(ctx context.Context, category
 }
 
 func (postgres *PostgresRepository) GetCategoryList(ctx context.Context, where *Where) (
-	categoryList []*Category, err error) {
+	categoryList []*entities.Category, err error) {
 
 	where = ValidateWhere(where)
 	queryScript := `
@@ -64,10 +65,10 @@ func (postgres *PostgresRepository) GetCategoryList(ctx context.Context, where *
 		}
 	}(rows)
 
-	categoryList = make([]*Category, 0)
+	categoryList = make([]*entities.Category, 0)
 
 	for rows.Next() {
-		category := new(Category)
+		category := new(entities.Category)
 
 		err = rows.Scan(
 			&category.Id,
@@ -90,7 +91,7 @@ func (postgres *PostgresRepository) GetCategoryList(ctx context.Context, where *
 }
 
 func (postgres *PostgresRepository) FindCategory(ctx context.Context, where *Where) (
-	category *Category, err error) {
+	category *entities.Category, err error) {
 
 	where = ValidateWhere(where)
 	queryScript := `
@@ -107,7 +108,7 @@ func (postgres *PostgresRepository) FindCategory(ctx context.Context, where *Whe
 	query := fmt.Sprintf("%s %s", queryScript, where.Parameter)
 	row := postgres.DB.QueryRowContext(ctx, query, where.Values...)
 
-	category = new(Category)
+	category = new(entities.Category)
 	err = row.Scan(
 		&category.Id,
 		&category.Name,
@@ -125,7 +126,7 @@ func (postgres *PostgresRepository) FindCategory(ctx context.Context, where *Whe
 	return
 }
 
-func (postgres *PostgresRepository) UpdateCategory(ctx context.Context, category *Category) (
+func (postgres *PostgresRepository) UpdateCategory(ctx context.Context, category *entities.Category) (
 	result sql.Result, err error) {
 
 	queryScript := `

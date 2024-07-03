@@ -4,23 +4,26 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/michaelwp/goblog/dto"
+	"github.com/michaelwp/goblog/entities"
 	"log"
 	"strings"
 )
 
 type ArticleModel interface {
-	CreateArticle(ctx context.Context, article *Article) (result sql.Result, err error)
-	GetArticleList(ctx context.Context, where *Where) (articleList []*ArticleWithExtend, err error)
-	FindArticle(ctx context.Context, where *Where) (article *ArticleWithExtend, err error)
-	UpdateArticle(ctx context.Context, article *Article) (result sql.Result, err error)
+	CreateArticle(ctx context.Context, article *entities.Article) (result sql.Result, err error)
+	GetArticleList(ctx context.Context, where *Where) (articleList []*dto.ArticleWithExtend, err error)
+	FindArticle(ctx context.Context, where *Where) (article *dto.ArticleWithExtend, err error)
+	UpdateArticle(ctx context.Context, article *entities.Article) (result sql.Result, err error)
 	DeleteArticle(ctx context.Context, articleId int64) (result sql.Result, err error)
+	GetAvailableCategoryId(ctx context.Context) (articles []*entities.Article, err error)
 }
 
 func NewArticleModel(db *sql.DB) ArticleModel {
 	return &PostgresRepository{db}
 }
 
-func (postgres *PostgresRepository) CreateArticle(ctx context.Context, article *Article) (
+func (postgres *PostgresRepository) CreateArticle(ctx context.Context, article *entities.Article) (
 	result sql.Result, err error) {
 
 	lowerTags := strings.ToLower(*article.Tags)
@@ -54,7 +57,7 @@ func (postgres *PostgresRepository) CreateArticle(ctx context.Context, article *
 }
 
 func (postgres *PostgresRepository) GetArticleList(ctx context.Context, where *Where) (
-	articleWithExtendList []*ArticleWithExtend, err error) {
+	articleWithExtendList []*dto.ArticleWithExtend, err error) {
 
 	where = ValidateWhere(where)
 
@@ -68,6 +71,7 @@ func (postgres *PostgresRepository) GetArticleList(ctx context.Context, where *W
 	`
 
 	query := fmt.Sprintf("%s %s %s %s", queryScript, where.Parameter, where.Order, where.Limit)
+
 	rows, err := postgres.DB.QueryContext(ctx, query, where.Values...)
 	if err != nil {
 		return
@@ -80,10 +84,10 @@ func (postgres *PostgresRepository) GetArticleList(ctx context.Context, where *W
 		}
 	}(rows)
 
-	articleWithExtendList = make([]*ArticleWithExtend, 0)
+	articleWithExtendList = make([]*dto.ArticleWithExtend, 0)
 
 	for rows.Next() {
-		articleWithExtend := new(ArticleWithExtend)
+		articleWithExtend := new(dto.ArticleWithExtend)
 
 		err = rows.Scan(
 			&articleWithExtend.Id,
@@ -102,7 +106,7 @@ func (postgres *PostgresRepository) GetArticleList(ctx context.Context, where *W
 }
 
 func (postgres *PostgresRepository) FindArticle(ctx context.Context, where *Where) (
-	articleWithExtend *ArticleWithExtend, err error) {
+	articleWithExtend *dto.ArticleWithExtend, err error) {
 
 	where = ValidateWhere(where)
 
@@ -132,7 +136,7 @@ func (postgres *PostgresRepository) FindArticle(ctx context.Context, where *Wher
 	query := fmt.Sprintf("%s %s", queryScript, where.Parameter)
 	row := postgres.DB.QueryRowContext(ctx, query, where.Values...)
 
-	articleWithExtend = new(ArticleWithExtend)
+	articleWithExtend = new(dto.ArticleWithExtend)
 	err = row.Scan(
 		&articleWithExtend.Id,
 		&articleWithExtend.UserId,
@@ -160,7 +164,7 @@ func (postgres *PostgresRepository) FindArticle(ctx context.Context, where *Wher
 	return
 }
 
-func (postgres *PostgresRepository) UpdateArticle(ctx context.Context, article *Article) (
+func (postgres *PostgresRepository) UpdateArticle(ctx context.Context, article *entities.Article) (
 	result sql.Result, err error) {
 
 	lowerTags := strings.ToLower(*article.Tags)
@@ -199,4 +203,39 @@ func (postgres *PostgresRepository) DeleteArticle(ctx context.Context, articleId
 
 	queryScript := `DELETE FROM articles WHERE id = $1`
 	return postgres.DB.ExecContext(ctx, queryScript, articleId)
+}
+
+func (postgres *PostgresRepository) GetAvailableCategoryId(ctx context.Context) (
+	articles []*entities.Article, err error) {
+
+	queryScript := `
+		SELECT a.category_id
+		FROM articles a
+		GROUP BY a.category_id
+	`
+
+	rows, err := postgres.DB.QueryContext(ctx, queryScript)
+	if err != nil {
+		return
+	}
+
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Println("error closing get article list rows:", err)
+		}
+	}(rows)
+
+	articles = make([]*entities.Article, 0)
+	for rows.Next() {
+		article := new(entities.Article)
+		err = rows.Scan(&article.CategoryId)
+		if err != nil {
+			return
+		}
+
+		articles = append(articles, article)
+	}
+
+	return
 }

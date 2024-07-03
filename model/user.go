@@ -4,15 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/michaelwp/goblog/entities"
 	"log"
 	"strings"
 )
 
 type UserModel interface {
-	CreateUser(ctx context.Context, user *User) (result sql.Result, err error)
-	GetUserList(ctx context.Context, where *Where) (userList []*User, err error)
-	FindUser(ctx context.Context, where *Where) (user *User, err error)
-	UpdateOnlineStatus(ctx context.Context, user *User) (result sql.Result, err error)
+	CreateUser(ctx context.Context, user *entities.User) (result sql.Result, err error)
+	GetUserList(ctx context.Context, where *Where) (userList []*entities.User, err error)
+	FindUser(ctx context.Context, where *Where) (user *entities.User, err error)
+	UpdateOnlineStatus(ctx context.Context, user *entities.User) (result sql.Result, err error)
 	DeleteUser(ctx context.Context, userId int64) (result sql.Result, err error)
 }
 
@@ -20,7 +21,9 @@ func NewUserModel(db *sql.DB) UserModel {
 	return &PostgresRepository{db}
 }
 
-func (postgres *PostgresRepository) CreateUser(ctx context.Context, user *User) (result sql.Result, err error) {
+func (postgres *PostgresRepository) CreateUser(ctx context.Context, user *entities.User) (
+	result sql.Result, err error) {
+
 	queryScript := `
 		INSERT INTO users (
 		    name
@@ -40,7 +43,9 @@ func (postgres *PostgresRepository) CreateUser(ctx context.Context, user *User) 
 	)
 }
 
-func (postgres *PostgresRepository) GetUserList(ctx context.Context, where *Where) (userList []*User, err error) {
+func (postgres *PostgresRepository) GetUserList(ctx context.Context, where *Where) (
+	userList []*entities.User, err error) {
+
 	where = ValidateWhere(where)
 
 	queryScript := `
@@ -74,10 +79,10 @@ func (postgres *PostgresRepository) GetUserList(ctx context.Context, where *Wher
 		}
 	}(rows)
 
-	userList = make([]*User, 0)
+	userList = make([]*entities.User, 0)
 
 	for rows.Next() {
-		user := new(User)
+		user := new(entities.User)
 
 		err = rows.Scan(
 			&user.Id,
@@ -106,7 +111,7 @@ func (postgres *PostgresRepository) GetUserList(ctx context.Context, where *Wher
 	return
 }
 
-func (postgres *PostgresRepository) FindUser(ctx context.Context, where *Where) (user *User, err error) {
+func (postgres *PostgresRepository) FindUser(ctx context.Context, where *Where) (user *entities.User, err error) {
 	where = ValidateWhere(where)
 	queryScript := `
 		SELECT	id
@@ -129,7 +134,7 @@ func (postgres *PostgresRepository) FindUser(ctx context.Context, where *Where) 
 	query := fmt.Sprintf("%s %s", queryScript, where.Parameter)
 	row := postgres.DB.QueryRowContext(ctx, query, where.Values...)
 
-	user = new(User)
+	user = new(entities.User)
 	err = row.Scan(
 		&user.Id,
 		&user.Name,
@@ -154,7 +159,9 @@ func (postgres *PostgresRepository) FindUser(ctx context.Context, where *Where) 
 	return
 }
 
-func (postgres *PostgresRepository) UpdateOnlineStatus(ctx context.Context, user *User) (result sql.Result, err error) {
+func (postgres *PostgresRepository) UpdateOnlineStatus(ctx context.Context, user *entities.User) (
+	result sql.Result, err error) {
+
 	queryScript := `
 		UPDATE 	users SET 
 		        online = $1
